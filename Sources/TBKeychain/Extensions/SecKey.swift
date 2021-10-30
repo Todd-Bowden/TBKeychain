@@ -30,6 +30,10 @@ public extension SecKey {
             kSecAttrKeySizeInBits as String:        256,
             kSecAttrIsPermanent as String:          isPermanent,
         ]
+        return try privateKey(data, attributes: attributes)
+    }
+    
+    static func privateKey(_ data: Data, attributes: [String:Any]) throws -> SecKey {
         var error: Unmanaged<CFError>?
         guard let secKey = SecKeyCreateWithData(data as CFData, attributes as CFDictionary, &error) else {
             throw Error.unableToCreatePrivateSecKey(error.debugDescription)
@@ -37,18 +41,20 @@ public extension SecKey {
         return secKey
     }
     
-    static func generatePrivateKey() -> SecKey? {
-
+    static func generatePrivateKey() throws -> SecKey {
         let attributes: [String: Any] = [
             kSecAttrKeyType as String:              kSecAttrKeyTypeECSECPrimeRandom,
             kSecAttrKeyClass as String:             kSecAttrKeyClassPrivate,
             kSecAttrKeySizeInBits as String:        256,
             kSecAttrIsPermanent as String:          false,
         ]
-
+        return try generatePrivateKey(attributes: attributes)
+    }
+    
+    static func generatePrivateKey(attributes: [String:Any]) throws -> SecKey {
         var error: Unmanaged<CFError>?
         guard let privateKey = SecKeyCreateRandomKey(attributes as CFDictionary, &error) else {
-            return nil
+            throw Error.unableToCreatePrivateSecKey(error.debugDescription)
         }
         return privateKey
     }

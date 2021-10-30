@@ -90,6 +90,78 @@ public class TBKeychain {
     }
     
     
+    // MARK: Generating and Importing Keys
+    
+    public func generateSecureEnclaveKeyPair(tag: String? = nil, label: String? = nil, accessFlag: SecAccessControlCreateFlags? = nil) throws -> KeyPair {
+        try generateKeyPair(secureEnclave: true, tag: tag, label: label, accessFlag: accessFlag)
+    }
+   
+    public func generateKeyPair(secureEnclave: Bool, tag: String? = nil, label: String? = nil, accessFlag: SecAccessControlCreateFlags? = nil) throws -> KeyPair {
+        var attributes = try makeCreateKeyAttributes(secureEnclave: secureEnclave, tag: tag, label: label, accessFlag: accessFlag)
+        let privateSecKey = try SecKey.generatePrivateKey(attributes: attributes)
+        attributes[kSecValueRef as String] = privateSecKey
+        return try KeyPair(attributes: attributes)
+    }
+    
+    public func importPrivateKey(data: Data, tag: String? = nil, label: String? = nil, accessFlag: SecAccessControlCreateFlags? = nil) throws -> KeyPair {
+        var attributes = try makeCreateKeyAttributes(secureEnclave: false, tag: tag, label: label, accessFlag: accessFlag)
+        let privateSecKey = try SecKey.privateKey(data, attributes: attributes)
+        attributes[kSecValueRef as String] = privateSecKey
+        return try KeyPair(attributes: attributes)
+    }
+    
+    private func makeCreateKeyAttributes(secureEnclave: Bool, tag: String? = nil, label: String? = nil, accessFlag: SecAccessControlCreateFlags? = nil) throws -> [String:Any] {
+        let access = try makeSecAccessControl(secureEnclave: secureEnclave, accessFlag: accessFlag)
+
+         var attributes: [String: Any] = [
+             kSecUseAuthenticationUI as String: kSecUseAuthenticationContext,
+             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+             kSecAttrKeySizeInBits as String: 256,
+             kSecAttrAccessGroup as String: accessGroup,
+             kSecPrivateKeyAttrs as String: [
+                 kSecAttrIsPermanent as String: true,
+                 kSecAttrAccessControl as String: access
+             ]
+         ]
+         if secureEnclave {
+             attributes[kSecAttrTokenID as String] = kSecAttrTokenIDSecureEnclave
+         }
+         if let tag = tag {
+             attributes[kSecAttrApplicationTag as String] = tag
+         }
+         if let label = label {
+             attributes[kSecAttrLabel as String] = label
+         }
+        
+        return attributes
+    }
+    
+    private func makeSecAccessControl(secureEnclave: Bool, accessFlag: SecAccessControlCreateFlags? = nil) throws -> SecAccessControl {
+        var flags: SecAccessControlCreateFlags
+        if let accessFlag = accessFlag {
+            if secureEnclave {
+                flags = [.privateKeyUsage, accessFlag]
+            } else {
+                flags = [accessFlag]
+            }
+        } else {
+            if secureEnclave {
+                flags = [.privateKeyUsage]
+            } else {
+                flags = []
+            }
+        }
+
+        var error: Unmanaged<CFError>?
+        let protection = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        if let accessControl = SecAccessControlCreateWithFlags(kCFAllocatorDefault,protection,flags,&error) {
+            return accessControl
+        } else {
+            throw Error.unableToCreateAccessControl(error.debugDescription)
+        }
+    }
+    
+    
     // MARK: Encryption and Decryption
     
     /// Encrypt message with publicKey using provided algorithm.  default = SecKeyAlgorithm.eciesEncryptionCofactorVariableIVX963SHA256AESGCM

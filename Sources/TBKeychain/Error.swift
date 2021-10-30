@@ -16,6 +16,7 @@ public enum Error: Swift.Error, Equatable {
     case keysQueryError(Int32)
     case secKeyIsNotAValidPublicKey
     case secKeyUnableToGetExternalRepresentation(String)
+    case unableToCreateAccessControl(String)
     case unableToCreatePrivateSecKey(String)
     case unableToCreatePublicKey
     case unableToCreatePublicSecKey(String)
