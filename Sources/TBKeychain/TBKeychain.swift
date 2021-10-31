@@ -10,9 +10,9 @@ import CryptoKit
 
 public class TBKeychain {
 
-    public let accessGroup: String
+    public let accessGroup: String?
     
-    public init(accessGroup: String) {
+    public init(accessGroup: String? = nil) {
         self.accessGroup = accessGroup
     }
     
@@ -75,11 +75,13 @@ public class TBKeychain {
     private func lookupKeyAttributesQuery(applicationLabel: Data? = nil, tag: String? = nil, matchAll: Bool = true) -> [String:Any] {
         var query: [String: Any] =  [
             kSecClass as String: kSecClassKey,
-            kSecAttrAccessGroup as String: accessGroup,
             kSecReturnAttributes as String: true,
             kSecReturnRef as String: true,
             kSecMatchLimit as String: matchAll ? kSecMatchLimitAll : kSecMatchLimitOne
         ]
+        if let accessGroup = accessGroup {
+            query[kSecAttrAccessGroup as String] = accessGroup
+        }
         if let tag = tag {
             query[kSecAttrApplicationTag as String] = tag
         }
@@ -113,25 +115,27 @@ public class TBKeychain {
     private func makeCreateKeyAttributes(secureEnclave: Bool, tag: String? = nil, label: String? = nil, accessFlag: SecAccessControlCreateFlags? = nil) throws -> [String:Any] {
         let access = try makeSecAccessControl(secureEnclave: secureEnclave, accessFlag: accessFlag)
 
-         var attributes: [String: Any] = [
+        var attributes: [String: Any] = [
              kSecUseAuthenticationUI as String: kSecUseAuthenticationContext,
              kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
              kSecAttrKeySizeInBits as String: 256,
-             kSecAttrAccessGroup as String: accessGroup,
              kSecPrivateKeyAttrs as String: [
                  kSecAttrIsPermanent as String: true,
                  kSecAttrAccessControl as String: access
              ]
          ]
-         if secureEnclave {
-             attributes[kSecAttrTokenID as String] = kSecAttrTokenIDSecureEnclave
-         }
-         if let tag = tag {
-             attributes[kSecAttrApplicationTag as String] = tag
-         }
-         if let label = label {
-             attributes[kSecAttrLabel as String] = label
-         }
+        if let accessGroup = accessGroup {
+            attributes[kSecAttrAccessGroup as String] = accessGroup
+        }
+        if secureEnclave {
+            attributes[kSecAttrTokenID as String] = kSecAttrTokenIDSecureEnclave
+        }
+        if let tag = tag {
+            attributes[kSecAttrApplicationTag as String] = tag
+        }
+        if let label = label {
+            attributes[kSecAttrLabel as String] = label
+        }
         
         return attributes
     }
