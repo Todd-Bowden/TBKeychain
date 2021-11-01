@@ -13,7 +13,7 @@ import CryptoKit
 final class PublicKeyTests: XCTestCase {
     
     func generateX963Secp256r1PublicKey() -> Data? {
-        try? SecKey.generatePrivateKey()?.publicSecKey?.externalRepresentation()
+        try? SecKey.generatePrivateKey().publicSecKey?.externalRepresentation()
     }
     
     func generateX963RandomDataPublicKey() -> Data? {
