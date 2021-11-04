@@ -21,6 +21,7 @@ public enum Error: Swift.Error, Equatable {
     case unableToCreatePublicKey
     case unableToCreatePublicSecKey(String)
     case unableToCreatePublicKeyFromData(Data)
+    case unableToDeleteKey(Int32)
     case unsupportedKeyCurve
     case unsupportedKeyFormat
     

@@ -166,6 +166,27 @@ public class TBKeychain {
     }
     
     
+    // MARK: Delete Keys
+    
+    public func delete(publicKey: Data) throws {
+        return try delete(publicKey: PublicKey(publicKey))
+    }
+    
+    public func delete(publicKey: PublicKey) throws {
+        var query: [String: Any] =  [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationLabel as String: publicKey.sha1
+        ]
+        if let accessGroup = accessGroup {
+            query[kSecAttrAccessGroup as String] = accessGroup
+        }
+        let result = SecItemDelete(query as CFDictionary)
+        guard result == 0 else {
+            throw Error.unableToDeleteKey(result)
+        }
+    }
+    
+    
     // MARK: Encryption and Decryption
     
     /// Encrypt message with publicKey using provided algorithm.  default = SecKeyAlgorithm.eciesEncryptionCofactorVariableIVX963SHA256AESGCM
