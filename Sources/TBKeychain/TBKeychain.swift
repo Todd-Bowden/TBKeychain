@@ -11,12 +11,14 @@ import CryptoKit
 public class TBKeychain {
 
     public let accessGroup: String?
+    public let options: Options
     
-    public init(accessGroup: String? = nil) {
+    public init(accessGroup: String? = nil, options: Options? = nil) {
         self.accessGroup = accessGroup
+        self.options = options ?? Options.default
     }
     
-
+    
     // MARK: Getting KeyPairs from the keychain
  
     public func keyPair(publicKey: Data) throws -> KeyPair {
@@ -94,26 +96,27 @@ public class TBKeychain {
     
     // MARK: Generating and Importing Keys
     
-    public func generateSecureEnclaveKeyPair(tag: String? = nil, label: String? = nil, accessFlag: SecAccessControlCreateFlags? = nil) throws -> KeyPair {
-        try generateKeyPair(secureEnclave: true, tag: tag, label: label, accessFlag: accessFlag)
+    public func generateSecureEnclaveKeyPair(tag: String? = nil, label: String? = nil, options: Options? = nil) throws -> KeyPair {
+        try generateKeyPair(secureEnclave: true, tag: tag, label: label, options: options)
     }
    
-    public func generateKeyPair(secureEnclave: Bool, tag: String? = nil, label: String? = nil, accessFlag: SecAccessControlCreateFlags? = nil) throws -> KeyPair {
-        var attributes = try makeCreateKeyAttributes(secureEnclave: secureEnclave, tag: tag, label: label, accessFlag: accessFlag)
+    public func generateKeyPair(secureEnclave: Bool, tag: String? = nil, label: String? = nil, options: Options? = nil) throws -> KeyPair {
+        var attributes = try makeCreateKeyAttributes(secureEnclave: secureEnclave, tag: tag, label: label, options: options)
         let privateSecKey = try SecKey.generatePrivateKey(attributes: attributes)
         attributes[kSecValueRef as String] = privateSecKey
         return try KeyPair(attributes: attributes)
     }
     
-    public func importPrivateKey(data: Data, tag: String? = nil, label: String? = nil, accessFlag: SecAccessControlCreateFlags? = nil) throws -> KeyPair {
-        var attributes = try makeCreateKeyAttributes(secureEnclave: false, tag: tag, label: label, accessFlag: accessFlag)
+    public func importPrivateKey(data: Data, tag: String? = nil, label: String? = nil, options: Options? = nil) throws -> KeyPair {
+        var attributes = try makeCreateKeyAttributes(secureEnclave: false, tag: tag, label: label, options: options)
         let privateSecKey = try SecKey.privateKey(data, attributes: attributes)
         attributes[kSecValueRef as String] = privateSecKey
         return try KeyPair(attributes: attributes)
     }
     
-    private func makeCreateKeyAttributes(secureEnclave: Bool, tag: String? = nil, label: String? = nil, accessFlag: SecAccessControlCreateFlags? = nil) throws -> [String:Any] {
-        let access = try makeSecAccessControl(secureEnclave: secureEnclave, accessFlag: accessFlag)
+    private func makeCreateKeyAttributes(secureEnclave: Bool, tag: String? = nil, label: String? = nil, options: Options? = nil) throws -> [String:Any] {
+        let options = options ?? self.options
+        let access = try options.accessControl()
 
         var attributes: [String: Any] = [
              kSecUseAuthenticationUI as String: kSecUseAuthenticationContext,
@@ -123,7 +126,7 @@ public class TBKeychain {
                  kSecAttrIsPermanent as String: true,
                  kSecAttrAccessControl as String: access
              ]
-         ]
+        ]
         if let accessGroup = accessGroup {
             attributes[kSecAttrAccessGroup as String] = accessGroup
         }
@@ -136,33 +139,7 @@ public class TBKeychain {
         if let label = label {
             attributes[kSecAttrLabel as String] = label
         }
-        
         return attributes
-    }
-    
-    private func makeSecAccessControl(secureEnclave: Bool, accessFlag: SecAccessControlCreateFlags? = nil) throws -> SecAccessControl {
-        var flags: SecAccessControlCreateFlags
-        if let accessFlag = accessFlag {
-            if secureEnclave {
-                flags = [.privateKeyUsage, accessFlag]
-            } else {
-                flags = [accessFlag]
-            }
-        } else {
-            if secureEnclave {
-                flags = [.privateKeyUsage]
-            } else {
-                flags = []
-            }
-        }
-
-        var error: Unmanaged<CFError>?
-        let protection = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-        if let accessControl = SecAccessControlCreateWithFlags(kCFAllocatorDefault,protection,flags,&error) {
-            return accessControl
-        } else {
-            throw Error.unableToCreateAccessControl(error.debugDescription)
-        }
     }
     
     
