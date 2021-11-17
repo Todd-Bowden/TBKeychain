@@ -4,17 +4,21 @@
 //  Created by Todd Bowden on 10/14/21.
 //
 
-
 import Foundation
-import CryptoKit
 
 public class TBKeychain {
 
     public let accessGroup: String?
+    public let service: String
     public let options: Options
     
-    public init(accessGroup: String? = nil, options: Options? = nil) {
+    private enum ReservedTag: String {
+        case itemEncryptionKey = "TBKeychain.ItemEncryptionKey"
+    }
+    
+    public init(accessGroup: String? = nil, service: String = "", options: Options? = nil) {
         self.accessGroup = accessGroup
+        self.service = service
         self.options = options ?? Options.default
     }
     
@@ -39,6 +43,17 @@ public class TBKeychain {
     
     public func keyPairs(applicationLabel: Data? = nil, tag: String? = nil) throws -> [KeyPair] {
         try keysAttributes(applicationLabel: applicationLabel, tag: tag).map { try KeyPair(attributes: $0) }
+    }
+    
+    internal func itemEncryptionKeyPair() throws -> KeyPair {
+        if let keyPair = try? keyPair(tag: ReservedTag.itemEncryptionKey.rawValue) {
+            return keyPair
+        }
+        #if targetEnvironment(simulator)
+            return try generateKeyPair(secureEnclave: false, reservedTag: ReservedTag.itemEncryptionKey)
+        #else
+            return try generateKeyPair(secureEnclave: true, reservedTag: ReservedTag.itemEncryptionKey)
+        #endif
     }
 
     public func keyAttributes(applicationLabel: Data? = nil, tag: String? = nil) throws -> [String: Any] {
@@ -99,15 +114,24 @@ public class TBKeychain {
     public func generateSecureEnclaveKeyPair(tag: String? = nil, label: String? = nil, options: Options? = nil) throws -> KeyPair {
         try generateKeyPair(secureEnclave: true, tag: tag, label: label, options: options)
     }
-   
+    
     public func generateKeyPair(secureEnclave: Bool, tag: String? = nil, label: String? = nil, options: Options? = nil) throws -> KeyPair {
+        try validate(tag: tag)
         var attributes = try makeCreateKeyAttributes(secureEnclave: secureEnclave, tag: tag, label: label, options: options)
         let privateSecKey = try SecKey.generatePrivateKey(attributes: attributes)
         attributes[kSecValueRef as String] = privateSecKey
         return try KeyPair(attributes: attributes)
     }
     
+    private func generateKeyPair(secureEnclave: Bool, reservedTag: ReservedTag) throws -> KeyPair {
+        var attributes = try makeCreateKeyAttributes(secureEnclave: secureEnclave, tag: reservedTag.rawValue, options: Options.default)
+        let privateSecKey = try SecKey.generatePrivateKey(attributes: attributes)
+        attributes[kSecValueRef as String] = privateSecKey
+        return try KeyPair(attributes: attributes)
+    }
+    
     public func importPrivateKey(data: Data, tag: String? = nil, label: String? = nil, options: Options? = nil) throws -> KeyPair {
+        try validate(tag: tag)
         var attributes = try makeCreateKeyAttributes(secureEnclave: false, tag: tag, label: label, options: options)
         let privateSecKey = try SecKey.privateKey(data, attributes: attributes)
         attributes[kSecValueRef as String] = privateSecKey
@@ -116,7 +140,7 @@ public class TBKeychain {
     
     private func makeCreateKeyAttributes(secureEnclave: Bool, tag: String? = nil, label: String? = nil, options: Options? = nil) throws -> [String:Any] {
         let options = options ?? self.options
-        let access = try options.accessControl()
+        let access = try options.accessControl(isPrivateKey: true)
 
         var attributes: [String: Any] = [
              kSecUseAuthenticationUI as String: kSecUseAuthenticationContext,
@@ -140,6 +164,12 @@ public class TBKeychain {
             attributes[kSecAttrLabel as String] = label
         }
         return attributes
+    }
+    
+    private func validate(tag: String?) throws {
+        guard tag != ReservedTag.itemEncryptionKey.rawValue else {
+            throw Error.reservedKeyTag(ReservedTag.itemEncryptionKey.rawValue)
+        }
     }
     
     
