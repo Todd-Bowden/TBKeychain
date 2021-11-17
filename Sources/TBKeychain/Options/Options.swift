@@ -9,21 +9,21 @@ import Foundation
 
 public struct Options {
     public var protection: AccessProtection
-    public var constraints: AccessConstraints
+    public var authentication: Authentication
     public var synchronizable: Bool
     public var invisible: Bool
     public var encryptItems: Bool
     
-    public init(protection: AccessProtection, constraints: AccessConstraints, synchronizable: Bool, invisible: Bool, encryptItems: Bool) {
+    public init(protection: AccessProtection, authentication: Authentication, synchronizable: Bool, invisible: Bool, encryptItems: Bool) {
         self.protection = protection
-        self.constraints = constraints
+        self.authentication = authentication
         self.synchronizable = synchronizable
         self.invisible = invisible
         self.encryptItems = encryptItems
     }
     
     public func accessControl(isPrivateKey: Bool = false) throws -> SecAccessControl {
-        var flags = constraints.accessFlags
+        var flags = authentication.accessFlags
         if isPrivateKey {
             flags = flags.union(.privateKeyUsage)
         } else {
@@ -44,7 +44,7 @@ public extension Options {
     static var `default`: Options {
         return Options(
             protection: .afterFirstUnlockThisDeviceOnly,
-            constraints: AccessConstraints.none,
+            authentication: Authentication.none,
             synchronizable: false,
             invisible: true,
             encryptItems: false
@@ -54,7 +54,7 @@ public extension Options {
     static var `defaultEncryptItems`: Options {
         return Options(
             protection: .afterFirstUnlockThisDeviceOnly,
-            constraints: AccessConstraints.none,
+            authentication: Authentication.none,
             synchronizable: false,
             invisible: true,
             encryptItems: true
