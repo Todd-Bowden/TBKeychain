@@ -37,7 +37,6 @@ public struct Options {
             throw Error.unableToCreateAccessControl(error.debugDescription)
         }
     }
-    
 }
 
 public extension Options {
