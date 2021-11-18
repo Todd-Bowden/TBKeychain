@@ -167,6 +167,19 @@ public extension TBKeychain {
     
     // MARK: Delete items in the keychain
     
-    
+    func delete(name: String, service: String) throws {
+        var query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: name,
+            kSecAttrService as String: service
+        ]
+        if let accessGroup = accessGroup {
+            query[kSecAttrAccessGroup as String] = accessGroup
+        }
+        let result = SecItemDelete(query as CFDictionary)
+        guard result == errSecSuccess else {
+            throw Error.unableToDeleteItem(result)
+        }
+    }
     
 }

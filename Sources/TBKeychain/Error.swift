@@ -25,13 +25,13 @@ public enum Error: Swift.Error, Equatable {
     case unableToCreatePublicKey
     case unableToCreatePublicSecKey(String)
     case unableToCreatePublicKeyFromData(Data)
+    case unableToDeleteItem(Int32)
     case unableToDeleteKey(Int32)
     case unableToGetItemAttributes
     case unableToSaveItem(Int32)
     case unsupportedKeyCurve
     case unsupportedKeyFormat
     
-
     func replace(_ error: Error, with replacement: Error) -> Error {
         return self == error ? replacement : error
     }
