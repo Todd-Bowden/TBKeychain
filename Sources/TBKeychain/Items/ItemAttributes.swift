@@ -68,7 +68,6 @@ public struct ItemAttributes {
     }
     
     init(_ attributes: [String:Any]) {
-        print(attributes)
         name = attributes[kSecAttrAccount as String] as? String ?? ""
         service = attributes[kSecAttrService as String] as? String ?? ""
         vData = attributes["v_Data"] as? Data ?? Data()
