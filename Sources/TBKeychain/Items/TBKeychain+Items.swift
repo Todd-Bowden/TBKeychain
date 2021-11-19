@@ -15,11 +15,13 @@ public extension TBKeychain {
     
     // MARK: Get items from the keychain
     
-    func itemAttributes(name: String, service: String) throws -> ItemAttributes {
-        try ItemAttributes(itemAttributesDictionary(name: name, service: service))
+    func itemAttributes(name: String, service: String? = nil) throws -> ItemAttributes {
+        let service = service ?? self.service
+        return try ItemAttributes(itemAttributesDictionary(name: name, service: service))
     }
     
-    func itemAttributesDictionary(name: String, service: String) throws -> [String:Any] {
+    func itemAttributesDictionary(name: String, service: String? = nil) throws -> [String:Any] {
+        let service = service ?? self.service
         let query = makeItemsAttributesLookupQuery(name: name, service: service)
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -32,7 +34,8 @@ public extension TBKeychain {
         return attributes
     }
     
-    private func makeItemsAttributesLookupQuery(name: String?, service: String) -> [String:Any] {
+    private func makeItemsAttributesLookupQuery(name: String?, service: String? = nil) -> [String:Any] {
+        let service = service ?? self.service
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -51,16 +54,23 @@ public extension TBKeychain {
         return query
     }
     
-    func string(name: String, service: String) throws -> String {
-        try itemAttributes(name: name, service: service).string()
+    func string(name: String, service: String? = nil) throws -> String {
+        let service = service ?? self.service
+        return try itemAttributes(name: name, service: service).string()
     }
     
-    func object<T:Codable>(name: String, service: String) throws -> T {
-        try itemAttributes(name: name, service: service).object()
+    func object<T:Codable>(name: String, service: String? = nil) throws -> T {
+        let service = service ?? self.service
+        return try itemAttributes(name: name, service: service).object()
     }
     
-    func data(name: String, service: String) throws -> Data {
-        try itemAttributes(name: name, service: service).data()
+    func data(name: String, service: String? = nil) throws -> Data {
+        let service = service ?? self.service
+        return try itemAttributes(name: name, service: service).data()
+    }
+    
+    func itemExists(name: String, service: String? = nil) -> Bool {
+        return (try? itemAttributes(name: name, service: service)) != nil
     }
     
     
@@ -167,7 +177,8 @@ public extension TBKeychain {
     
     // MARK: Delete items in the keychain
     
-    func delete(name: String, service: String) throws {
+    func delete(name: String, service: String? = nil) throws {
+        let service = service ?? self.service
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: name,
