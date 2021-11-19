@@ -50,13 +50,4 @@ public extension Options {
         )
     }
     
-    static var `defaultEncryptItems`: Options {
-        return Options(
-            protection: .afterFirstUnlockThisDeviceOnly,
-            authentication: Authentication.none,
-            synchronizable: false,
-            invisible: true,
-            encryptItems: true
-        )
-    }
 }
