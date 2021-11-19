@@ -85,7 +85,6 @@ public struct ItemAttributes {
         if let labelData = label?.data(using: .utf8), let metadata = try? decoder.decode(ItemMetadata.self, from: labelData) {
             type = metadata.type
             encryptionKey = metadata.encryption
-      
         } else {
             type = .password
             encryptionKey = nil
