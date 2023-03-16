@@ -1,3 +1,3 @@
 # TBKeychain
 
-A description of this package.
+Library for storing items in the keychain, encryption and digital signatures. 
